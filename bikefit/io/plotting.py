@@ -8,16 +8,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from bikefit.kinematics.angles import KinematicsResult
+from bikefit.segmentation.cycles import CycleSegmentationResult
 
 
 def plot_kinematics_summary(
     kinematics: KinematicsResult,
     output_path: Path | str,
+    cycle_stats: Optional[CycleSegmentationResult] = None,
     title: Optional[str] = None,
 ) -> Path:
     """
     Generate a 3-panel publication-grade chart of joint angles over time:
-      1. Knee angle (internal and flexion) with target BDC zone (145-155 deg)
+      1. Knee angle (internal and flexion) with target BDC zone (145-155 deg) and DMP/GMP marks
       2. Hip angle and Torso inclination angle
       3. Foot angle and Ankle angle
     """
@@ -28,7 +30,7 @@ def plot_kinematics_summary(
     fig, axes = plt.subplots(3, 1, figsize=(11, 9), sharex=True)
 
     side_label = kinematics.side.capitalize()
-    main_title = title or f"BikeFit Kinematics Analysis ({side_label} Side)"
+    main_title = title or f"BikeFit Kinematics & Pedal Cycle Analysis ({side_label} Side)"
     fig.suptitle(main_title, fontsize=14, fontweight="bold", y=0.98)
 
     # 1. Knee Angle
@@ -36,6 +38,32 @@ def plot_kinematics_summary(
     ax1.plot(t, kinematics.knee_angles, color="#1f77b4", lw=2, label="Knee Angle (internal)")
     # Target zone for Bottom Dead Center (145-155 deg internal = 25-35 deg flexion)
     ax1.axhspan(145, 155, color="green", alpha=0.15, label="Target BDC Range (145°-155°)")
+
+    # Mark detected BDC (DMP) and TDC (GMP)
+    if cycle_stats and cycle_stats.all_bdc_frames:
+        bdc_idx = [f for f in cycle_stats.all_bdc_frames if f < len(t)]
+        if bdc_idx:
+            ax1.scatter(
+                t[bdc_idx],
+                kinematics.knee_angles[bdc_idx],
+                color="red",
+                s=40,
+                zorder=5,
+                label=f"DMP / BDC ({len(bdc_idx)} peaks)",
+            )
+    if cycle_stats and cycle_stats.all_tdc_frames:
+        tdc_idx = [f for f in cycle_stats.all_tdc_frames if f < len(t)]
+        if tdc_idx:
+            ax1.scatter(
+                t[tdc_idx],
+                kinematics.knee_angles[tdc_idx],
+                color="navy",
+                marker="v",
+                s=35,
+                zorder=5,
+                label="GMP / TDC",
+            )
+
     ax1.set_ylabel("Knee Angle [°]")
     ax1.set_title("Knee Kinematics (Extension & Flexion Cycles)")
     ax1.grid(True, linestyle="--", alpha=0.5)

@@ -1,4 +1,4 @@
-"""Command line interface for BikeFit pipeline (Stage 1 & Stage 2)."""
+"""Command line interface for BikeFit pipeline (Stage 1 to Stage 5)."""
 
 import argparse
 from pathlib import Path
@@ -13,6 +13,10 @@ from bikefit.kinematics.angles import extract_kinematics
 from bikefit.kinematics.scale import calibrate_scale_from_crank
 from bikefit.models.rtmpose import RTMPoseEstimator
 from bikefit.pipeline.video import VideoProcessor
+from bikefit.reporting.summary import format_text_summary, save_reports
+from bikefit.rules.config import FittingConfig
+from bikefit.rules.engine import FittingRuleEngine
+from bikefit.segmentation.cycles import CycleDetector
 
 
 def parse_crank_arg(crank_str: Optional[str]) -> Optional[Tuple[float, float]]:
@@ -33,7 +37,7 @@ def parse_crank_arg(crank_str: Optional[str]) -> Optional[Tuple[float, float]]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="bikefit",
-        description="BikeFit: AI-Powered Bike Fitting Analysis (RTMPose Halpe26 + Kinematics)",
+        description="BikeFit: AI-Powered Bike Fitting Analysis (RTMPose + Kinematics + Advice)",
     )
     parser.add_argument(
         "video",
@@ -44,7 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output-dir",
         type=Path,
         default=Path("./output"),
-        help="Directory to save keypoints, angles, charts, and annotated video (default: ./output)",
+        help="Directory to save keypoints, angles, charts, and reports (default: ./output)",
     )
     parser.add_argument(
         "--mode",
@@ -86,6 +90,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=5.0,
         help="Butterworth lowpass filter cutoff frequency in Hz (default: 5.0)",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Optional path to custom YAML fitting configuration",
     )
     parser.add_argument(
         "--export-format",
@@ -154,6 +164,7 @@ def main() -> None:
     elif interactive:
         print("[BikeFit] Interactive crank calibration enabled. A window will open to click the crank center.")
 
+    # 1. Video Processing & Pose Tracking (Stage 1)
     results, metadata = processor.process_video(
         video_path=args.video,
         crank=crank_coords,
@@ -165,7 +176,6 @@ def main() -> None:
 
     print(f"[BikeFit] Processed {len(results)} frames ({metadata.fps:.1f} FPS, {metadata.width}x{metadata.height}).")
 
-    # 1. Save raw tracked keypoints
     saved_keypoints = save_keypoints(
         results=results,
         output_path=output_dir / f"{video_stem}_keypoints",
@@ -177,7 +187,7 @@ def main() -> None:
     if output_video_path and output_video_path.exists():
         print(f"[BikeFit] Saved annotated video: {output_video_path}")
 
-    # 2. Extract kinematics & joint angles (Stage 2)
+    # 2. Extract Kinematics & Filtering (Stage 2)
     print(f"[BikeFit] Filtering trajectories & calculating joint angles (cutoff={args.filter_cutoff} Hz)...")
     kinematics = extract_kinematics(
         results=results,
@@ -188,7 +198,6 @@ def main() -> None:
     )
     print(f"[BikeFit] Analyzed side: {kinematics.side.upper()}")
 
-    # 3. Export angles DataFrame
     df_angles = kinematics.to_dataframe()
     if args.export_format in ("csv", "both"):
         csv_angles = output_dir / f"{video_stem}_angles.csv"
@@ -200,7 +209,7 @@ def main() -> None:
         df_angles.to_parquet(parquet_angles, index=False)
         print(f"[BikeFit] Saved angles: {parquet_angles}")
 
-    # 4. Scale calibration if crank center is available
+    # Scale calibration
     if results and results[0].crank_center is not None:
         foot_key = "right_big_toe" if kinematics.side == "right" else "left_big_toe"
         foot_pts = kinematics.filtered_trajectories.get(foot_key)
@@ -215,13 +224,33 @@ def main() -> None:
                 f"({scale.mm_per_pixel:.3f} mm/px) based on {args.crank_length} mm crank"
             )
 
-    # 5. Generate Kinematics Chart
+    # 3. Cycle Segmentation & Statistics (Stage 3)
+    print("[BikeFit] Segmenting pedal strokes and detecting Dead Centers (DMP / GMP)...")
+    detector = CycleDetector()
+    cycle_stats = detector.segment(kinematics, fps=metadata.fps)
+    print(
+        f"[BikeFit] Detected {len(cycle_stats.all_cycles)} pedal revolutions "
+        f"(analyzed {len(cycle_stats.retained_cycles)}, cadence ~{cycle_stats.cadence_rpm_median:.0f} RPM)"
+    )
+
+    # 4. Expert Fitting Rules & Recommendations (Stage 5)
+    config = FittingConfig.from_yaml(args.config) if args.config else FittingConfig()
+    engine = FittingRuleEngine(config=config)
+    report = engine.evaluate(cycle_stats=cycle_stats, known_crank_length_mm=args.crank_length)
+
+    # 5. Save Reports (TXT, Markdown, JSON)
+    report_paths = save_reports(report, output_dir=output_dir, base_name=video_stem)
+    print(f"[BikeFit] Saved Markdown report: {report_paths['md']}")
+    print(f"[BikeFit] Saved JSON report:     {report_paths['json']}")
+
+    # 6. Generate Kinematics Chart with DMP/GMP points
     if not args.no_plots:
         chart_path = output_dir / f"{video_stem}_kinematics.png"
-        plot_kinematics_summary(kinematics, output_path=chart_path)
+        plot_kinematics_summary(kinematics, output_path=chart_path, cycle_stats=cycle_stats)
         print(f"[BikeFit] Saved kinematics chart: {chart_path}")
 
-    print("[BikeFit] Analysis complete.")
+    # Print summary directly to user in terminal
+    print("\n" + format_text_summary(report))
 
 
 if __name__ == "__main__":
