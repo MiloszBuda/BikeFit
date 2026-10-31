@@ -1,4 +1,4 @@
-"""Report generation in text, Markdown, and JSON formats."""
+"""Report generation in text, Markdown, HTML, and JSON formats."""
 
 import json
 from pathlib import Path
@@ -12,7 +12,7 @@ def format_text_summary(report: FittingReport) -> str:
     stats = report.cycle_stats
     lines = [
         "=" * 65,
-        "         🚴 RAPORT ANALIZY BIKE FITTINGU (BikeFit AI)",
+        "         RAPORT ANALIZY BIKE FITTINGU (BikeFit AI)",
         "=" * 65,
         f"Analizowana strona:           {stats.side.upper()}",
         f"Liczba wykrytych obrotów:     {len(stats.all_cycles)} (analizowano: {len(stats.retained_cycles)})",
@@ -90,13 +90,21 @@ def format_markdown_summary(report: FittingReport) -> str:
     return "\n".join(lines)
 
 
-def save_reports(report: FittingReport, output_dir: Path | str, base_name: str) -> dict:
-    """Save reports in TXT, Markdown, and JSON formats."""
+def save_reports(
+    report: FittingReport,
+    output_dir: Path | str,
+    base_name: str,
+    chart_path: Optional[Path | str] = None,
+) -> dict:
+    """Save reports in TXT, Markdown, HTML, and JSON formats."""
+    from bikefit.reporting.html_report import generate_html_report
+
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     txt_path = out_dir / f"{base_name}_report.txt"
     md_path = out_dir / f"{base_name}_report.md"
+    html_path = out_dir / f"{base_name}_report.html"
     json_path = out_dir / f"{base_name}_report.json"
 
     # TXT
@@ -108,6 +116,9 @@ def save_reports(report: FittingReport, output_dir: Path | str, base_name: str) 
     md_content = format_markdown_summary(report)
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(md_content)
+
+    # HTML
+    generate_html_report(report, chart_image_path=chart_path, output_path=html_path)
 
     # JSON
     json_data = {
@@ -165,5 +176,6 @@ def save_reports(report: FittingReport, output_dir: Path | str, base_name: str) 
     return {
         "txt": txt_path,
         "md": md_path,
+        "html": html_path,
         "json": json_path,
     }
