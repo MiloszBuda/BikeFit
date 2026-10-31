@@ -1,4 +1,4 @@
-"""Command line interface for BikeFit Stage 1 video processing."""
+"""Command line interface for BikeFit pipeline (Stage 1 & Stage 2)."""
 
 import argparse
 from pathlib import Path
@@ -6,8 +6,11 @@ import sys
 from typing import Optional, Tuple
 
 from bikefit.calibration.crank import CrankCalibration
+from bikefit.io.plotting import plot_kinematics_summary
 from bikefit.io.storage import save_keypoints
 from bikefit.io.visualization import VideoVisualizer
+from bikefit.kinematics.angles import extract_kinematics
+from bikefit.kinematics.scale import calibrate_scale_from_crank
 from bikefit.models.rtmpose import RTMPoseEstimator
 from bikefit.pipeline.video import VideoProcessor
 
@@ -30,7 +33,7 @@ def parse_crank_arg(crank_str: Optional[str]) -> Optional[Tuple[float, float]]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="bikefit",
-        description="BikeFit: Video-to-Keypoints Stage 1 Pipeline (RTMPose Halpe26)",
+        description="BikeFit: AI-Powered Bike Fitting Analysis (RTMPose Halpe26 + Kinematics)",
     )
     parser.add_argument(
         "video",
@@ -41,7 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output-dir",
         type=Path,
         default=Path("./output"),
-        help="Directory to save keypoints data and annotated video (default: ./output)",
+        help="Directory to save keypoints, angles, charts, and annotated video (default: ./output)",
     )
     parser.add_argument(
         "--mode",
@@ -67,21 +70,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open GUI window to click on bottom bracket / crank center on first frame",
     )
     parser.add_argument(
+        "--crank-length",
+        type=float,
+        default=172.5,
+        help="Physical crank arm length in mm for scale calibration (default: 172.5)",
+    )
+    parser.add_argument(
         "--side",
         choices=["right", "left", "auto"],
         default="auto",
         help="Rider side facing camera (default: auto)",
     )
     parser.add_argument(
+        "--filter-cutoff",
+        type=float,
+        default=5.0,
+        help="Butterworth lowpass filter cutoff frequency in Hz (default: 5.0)",
+    )
+    parser.add_argument(
         "--export-format",
         choices=["csv", "parquet", "both"],
         default="both",
-        help="Keypoints serialization format (default: both)",
+        help="Keypoints & angles serialization format (default: both)",
     )
     parser.add_argument(
         "--no-video-out",
         action="store_true",
         help="Skip generating annotated skeleton MP4 video",
+    )
+    parser.add_argument(
+        "--no-plots",
+        action="store_true",
+        help="Skip generating kinematic matplotlib charts",
     )
     parser.add_argument(
         "--max-frames",
@@ -145,16 +165,63 @@ def main() -> None:
 
     print(f"[BikeFit] Processed {len(results)} frames ({metadata.fps:.1f} FPS, {metadata.width}x{metadata.height}).")
 
-    saved_files = save_keypoints(
+    # 1. Save raw tracked keypoints
+    saved_keypoints = save_keypoints(
         results=results,
         output_path=output_dir / f"{video_stem}_keypoints",
         export_format=args.export_format,
     )
-    for f in saved_files:
+    for f in saved_keypoints:
         print(f"[BikeFit] Saved keypoints: {f}")
 
     if output_video_path and output_video_path.exists():
         print(f"[BikeFit] Saved annotated video: {output_video_path}")
+
+    # 2. Extract kinematics & joint angles (Stage 2)
+    print(f"[BikeFit] Filtering trajectories & calculating joint angles (cutoff={args.filter_cutoff} Hz)...")
+    kinematics = extract_kinematics(
+        results=results,
+        fps=metadata.fps,
+        side=args.side,
+        cutoff_hz=args.filter_cutoff,
+        score_threshold=args.threshold,
+    )
+    print(f"[BikeFit] Analyzed side: {kinematics.side.upper()}")
+
+    # 3. Export angles DataFrame
+    df_angles = kinematics.to_dataframe()
+    if args.export_format in ("csv", "both"):
+        csv_angles = output_dir / f"{video_stem}_angles.csv"
+        df_angles.to_csv(csv_angles, index=False)
+        print(f"[BikeFit] Saved angles: {csv_angles}")
+
+    if args.export_format in ("parquet", "both"):
+        parquet_angles = output_dir / f"{video_stem}_angles.parquet"
+        df_angles.to_parquet(parquet_angles, index=False)
+        print(f"[BikeFit] Saved angles: {parquet_angles}")
+
+    # 4. Scale calibration if crank center is available
+    if results and results[0].crank_center is not None:
+        foot_key = "right_big_toe" if kinematics.side == "right" else "left_big_toe"
+        foot_pts = kinematics.filtered_trajectories.get(foot_key)
+        if foot_pts is not None:
+            scale = calibrate_scale_from_crank(
+                foot_points=foot_pts,
+                crank_center=results[0].crank_center,
+                crank_arm_mm=args.crank_length,
+            )
+            print(
+                f"[BikeFit] Scale calibration: {scale.pixels_per_mm:.3f} px/mm "
+                f"({scale.mm_per_pixel:.3f} mm/px) based on {args.crank_length} mm crank"
+            )
+
+    # 5. Generate Kinematics Chart
+    if not args.no_plots:
+        chart_path = output_dir / f"{video_stem}_kinematics.png"
+        plot_kinematics_summary(kinematics, output_path=chart_path)
+        print(f"[BikeFit] Saved kinematics chart: {chart_path}")
+
+    print("[BikeFit] Analysis complete.")
 
 
 if __name__ == "__main__":
