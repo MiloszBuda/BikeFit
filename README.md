@@ -1,5 +1,7 @@
 # BikeFit - AI-Powered Bike Fitting Analysis
 
+[![Static Badge](https://img.shields.io/badge/DEMO-red?style=for-the-badge)](https://bikefit-milosz.streamlit.app/)
+
 Kompleksowa aplikacja do komputerowej analizy pozycji kolarza (bike fitting) na trenażerze na podstawie nagrań wideo (RTMPose Halpe26 + Kinematyka + Silnik reguł biomechanicznych + Interfejs Webowy Streamlit).
 
 ---
