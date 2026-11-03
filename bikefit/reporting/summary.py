@@ -15,27 +15,27 @@ def format_text_summary(report: FittingReport) -> str:
         "         RAPORT ANALIZY BIKE FITTINGU (BikeFit AI)",
         "=" * 65,
         f"Analizowana strona:           {stats.side.upper()}",
-        f"Liczba wykrytych obrotów:     {len(stats.all_cycles)} (analizowano: {len(stats.retained_cycles)})",
+        f"Liczba wykrytych obrotow:     {len(stats.all_cycles)} (analizowano: {len(stats.retained_cycles)})",
         f"Kadencja (mediana):           {stats.cadence_rpm_median:.1f} RPM (+/- {stats.cadence_rpm_std:.1f})",
         "",
         "--- ZMIERZONE PARAMETRY BIOMECHANICZNE (MEDIANA +/- STD) ---",
-        f"• Zgięcie kolana w DMP:       {stats.knee_flexion_bdc_median:.1f}° (+/- {stats.knee_flexion_bdc_std:.1f}°)  [cel: 25°-35°]",
-        f"• Kąt wewnętrzny kolana:      {stats.knee_angle_bdc_median:.1f}° (+/- {stats.knee_angle_bdc_std:.1f}°)  [cel: 145°-155°]",
-        f"• Zamknięcie biodra w GMP:    {stats.hip_angle_tdc_median:.1f}° (+/- {stats.hip_angle_tdc_std:.1f}°)  [cel: >= 45°]",
-        f"• Kąt pochylenia tułowia:     {stats.torso_angle_median:.1f}° (+/- {stats.torso_angle_std:.1f}°)  [cel: 40°-50°]",
-        f"• Kąt ugięcia łokcia:         {stats.elbow_angle_median:.1f}° (+/- {stats.elbow_angle_std:.1f}°)  [cel: 150°-165°]",
-        f"• Nachylenie stopy w DMP:     {stats.foot_angle_bdc_median:.1f}° (+/- {stats.foot_angle_bdc_std:.1f}°)  [cel: -5° do +15°]",
+        f"- Zgiecie kolana w DMP:       {stats.knee_flexion_bdc_median:.1f} deg (+/- {stats.knee_flexion_bdc_std:.1f} deg)  [cel: 25-35 deg]",
+        f"- Kat wewnetrzny kolana:      {stats.knee_angle_bdc_median:.1f} deg (+/- {stats.knee_angle_bdc_std:.1f} deg)  [cel: 145-155 deg]",
+        f"- Zamkniecie biodra w GMP:    {stats.hip_angle_tdc_median:.1f} deg (+/- {stats.hip_angle_tdc_std:.1f} deg)  [cel: >= 45 deg]",
+        f"- Kat pochylenia tulowia:     {stats.torso_angle_median:.1f} deg (+/- {stats.torso_angle_std:.1f} deg)  [cel: 40-50 deg]",
+        f"- Kat ugiecia lokcia:         {stats.elbow_angle_median:.1f} deg (+/- {stats.elbow_angle_std:.1f} deg)  [cel: 150-165 deg]",
+        f"- Nachylenie stopy w DMP:     {stats.foot_angle_bdc_median:.1f} deg (+/- {stats.foot_angle_bdc_std:.1f} deg)  [cel: -5 do +15 deg]",
         "",
-        "--- REKOMENDACJE I WSKAZÓWKI ZMIAN ---",
+        "--- REKOMENDACJE I WSKAZOWKI ZMIAN ---",
     ]
 
     for i, rec in enumerate(report.recommendations, 1):
         lines.append(f"\n[{i}] {rec.category.value}:")
         lines.append(f"    Parametr:     {rec.parameter_name} = {rec.measured_value}{rec.unit} (zakres: {rec.target_range[0]}-{rec.target_range[1]}{rec.unit})")
-        lines.append(f"    ZALECENIE:    >>> {rec.action_summary} <<<")
-        lines.append(f"    Pewność:      {rec.confidence.value}")
+        lines.append(f"    ZALECENIE:    {rec.action_summary}")
+        lines.append(f"    Pewnosc:      {rec.confidence.value}")
         lines.append(f"    Uzasadnienie: {rec.rationale}")
-        lines.append(f"    Wskazówka:    {rec.alternatives}")
+        lines.append(f"    Wskazowka:    {rec.alternatives}")
 
     lines.extend([
         "",
@@ -53,32 +53,32 @@ def format_markdown_summary(report: FittingReport) -> str:
         "# Raport analizy Bike Fittingu",
         "",
         f"- **Strona kolarza**: {stats.side.upper()}",
-        f"- **Wykryte cykle pedałowania**: {len(stats.all_cycles)} (analizowano: {len(stats.retained_cycles)})",
-        f"- **Średnia kadencja**: {stats.cadence_rpm_median:.1f} RPM (odchylenie standardowe: {stats.cadence_rpm_std:.1f})",
+        f"- **Wykryte cykle pedalowania**: {len(stats.all_cycles)} (analizowano: {len(stats.retained_cycles)})",
+        f"- **Srednia kadencja**: {stats.cadence_rpm_median:.1f} RPM (odchylenie standardowe: {stats.cadence_rpm_std:.1f})",
         "",
         "## Podsumowanie biomechaniczne",
         "",
         "| Parametr stawu | Zmierzona mediana | Zakres optymalny | Status |",
         "| :--- | :---: | :---: | :---: |",
-        f"| Zgięcie kolana w DMP | **{stats.knee_flexion_bdc_median:.1f}°** | 25° – 35° | {'✅ Norma' if 25 <= stats.knee_flexion_bdc_median <= 35 else '⚠️ Poza zakresem'} |",
-        f"| Kąt wewnętrzny kolana w DMP | **{stats.knee_angle_bdc_median:.1f}°** | 145° – 155° | {'✅ Norma' if 145 <= stats.knee_angle_bdc_median <= 155 else '⚠️ Poza zakresem'} |",
-        f"| Kąt biodra w GMP | **{stats.hip_angle_tdc_median:.1f}°** | >= 45° | {'✅ Norma' if stats.hip_angle_tdc_median >= 45 else '⚠️ Zbyt mały'} |",
-        f"| Kąt tułowia (wzgl. poziomu) | **{stats.torso_angle_median:.1f}°** | 40° – 50° | {'✅ Norma' if 40 <= stats.torso_angle_median <= 50 else 'ℹ️ Informacyjny'} |",
-        f"| Kąt łokcia | **{stats.elbow_angle_median:.1f}°** | 150° – 165° | {'✅ Norma' if 150 <= stats.elbow_angle_median <= 165 else '⚠️ Poza zakresem'} |",
-        f"| Kąt nachylenia stopy w DMP | **{stats.foot_angle_bdc_median:.1f}°** | -5° – 15° | {'✅ Norma' if -5 <= stats.foot_angle_bdc_median <= 15 else '⚠️ Poza zakresem'} |",
+        f"| Zgiecie kolana w DMP | **{stats.knee_flexion_bdc_median:.1f} deg** | 25 deg - 35 deg | {'W normie' if 25 <= stats.knee_flexion_bdc_median <= 35 else 'Poza zakresem'} |",
+        f"| Kat wewnetrzny kolana w DMP | **{stats.knee_angle_bdc_median:.1f} deg** | 145 deg - 155 deg | {'W normie' if 145 <= stats.knee_angle_bdc_median <= 155 else 'Poza zakresem'} |",
+        f"| Kat biodra w GMP | **{stats.hip_angle_tdc_median:.1f} deg** | >= 45 deg | {'W normie' if stats.hip_angle_tdc_median >= 45 else 'Zbyt maly'} |",
+        f"| Kat tulowia (wzgl. poziomu) | **{stats.torso_angle_median:.1f} deg** | 40 deg - 50 deg | {'W normie' if 40 <= stats.torso_angle_median <= 50 else 'Informacyjny'} |",
+        f"| Kat lokcia | **{stats.elbow_angle_median:.1f} deg** | 150 deg - 165 deg | {'W normie' if 150 <= stats.elbow_angle_median <= 165 else 'Poza zakresem'} |",
+        f"| Kat nachylenia stopy w DMP | **{stats.foot_angle_bdc_median:.1f} deg** | -5 deg - 15 deg | {'W normie' if -5 <= stats.foot_angle_bdc_median <= 15 else 'Poza zakresem'} |",
         "",
-        "## Szczegółowe zalecenia zmian",
+        "## Szczegolowe zalecenia zmian",
         "",
     ]
 
     for i, rec in enumerate(report.recommendations, 1):
         lines.extend([
             f"### {i}. {rec.category.value}: {rec.parameter_name}",
-            f"- **Wartość zmierzona**: `{rec.measured_value}{rec.unit}` (docelowo: `{rec.target_range[0]}`–`{rec.target_range[1]}{rec.unit}`)",
+            f"- **Wartosc zmierzona**: `{rec.measured_value}{rec.unit}` (docelowo: `{rec.target_range[0]}` - `{rec.target_range[1]}{rec.unit}`)",
             f"- **Kluczowa akcja**: **{rec.action_summary}**",
-            f"- **Poziom pewności**: `{rec.confidence.value}`",
+            f"- **Poziom pewnosci**: `{rec.confidence.value}`",
             f"- **Uzasadnienie biomechaniczne**: {rec.rationale}",
-            f"- **Wskazówki i alternatywy**: {rec.alternatives}",
+            f"- **Wskazowki i alternatywy**: {rec.alternatives}",
             "",
         ])
 

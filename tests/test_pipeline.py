@@ -6,7 +6,7 @@ import pytest
 
 from bikefit.models.base import BasePoseEstimator
 from bikefit.models.halpe26 import HALPE26_KEYPOINTS
-from bikefit.pipeline.video import VideoProcessor
+from bikefit.pipeline.video import VideoProcessor, WebCompatibleVideoWriter
 
 
 class MockCyclistPoseEstimator(BasePoseEstimator):
@@ -74,6 +74,26 @@ def test_video_processor_pipeline(tmp_path: Path):
     # Check annotated video was written
     assert out_video_path.exists()
     assert out_video_path.stat().st_size > 0
+
+
+def test_web_compatible_video_writer(tmp_path: Path):
+    out_path = tmp_path / "h264_test.mp4"
+    writer = WebCompatibleVideoWriter(out_path, fps=30.0, width=320, height=240)
+    for _ in range(5):
+        frame = np.zeros((240, 320, 3), dtype=np.uint8)
+        writer.write_frame_bgr(frame)
+    writer.release()
+
+    assert out_path.exists()
+    assert out_path.stat().st_size > 500
+
+    # Verify OpenCV can read it back
+    cap = cv2.VideoCapture(str(out_path))
+    assert cap.isOpened()
+    ret, frame = cap.read()
+    assert ret
+    assert frame.shape == (240, 320, 3)
+    cap.release()
 
 
 def test_video_processor_missing_file():

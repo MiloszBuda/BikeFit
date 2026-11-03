@@ -33,39 +33,38 @@ def run_app() -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="BikeFit AI - Analiza pozycji kolarza",
-        page_icon="🚴",
+        page_title="BikeFit - Analiza pozycji kolarza",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    st.title("🚴 BikeFit AI - Analiza Pozycji na Rowerze")
+    st.title("BikeFit - Analiza Pozycji na Rowerze")
     st.markdown(
-        "Automatyczna analiza wideo jazdy na trenażerze: **śledzenie 26 stawów (RTMPose Halpe26)**, "
-        "filtracja zerofazowa, segmentacja cykli pedałowania oraz **porady fittingowe z przeliczeniem na milimetry**."
+        "Automatyczna analiza wideo jazdy na trenazerze: **sledzenie 26 stawow (RTMPose Halpe26)**, "
+        "filtracja zerofazowa, segmentacja cykli pedalowania oraz **porady fittingowe z przeliczeniem na milimetry**."
     )
 
     # -------------------------------------------------------------
     # SIDEBAR: PARAMETRY ANALIZY
     # -------------------------------------------------------------
     with st.sidebar:
-        st.header("⚙️ Ustawienia i parametry")
+        st.header("Ustawienia i parametry")
 
         st.subheader("1. Rower i geometria")
         crank_length = st.number_input(
-            "Długość ramienia korby [mm]:",
+            "Dlugosc ramienia korby [mm]:",
             min_value=150.0,
             max_value=185.0,
             value=172.5,
             step=2.5,
-            help="Standardowe długości to np. 165 mm, 170 mm, 172.5 mm, 175 mm.",
+            help="Standardowe dlugosci to np. 165 mm, 170 mm, 172.5 mm, 175 mm.",
         )
 
         side_choice = st.selectbox(
             "Strona kolarza skierowana do kamery:",
             options=["auto", "right", "left"],
             index=0,
-            format_func=lambda x: "Automatyczna detekcja" if x == "auto" else ("Prawa (napędowa)" if x == "right" else "Lewa"),
+            format_func=lambda x: "Automatyczna detekcja" if x == "auto" else ("Prawa (napedowa)" if x == "right" else "Lewa"),
         )
 
         st.subheader("2. Model RTMPose")
@@ -73,17 +72,17 @@ def main() -> None:
             "Tryb modelu:",
             options=["balanced", "lightweight", "performance"],
             index=0,
-            help="Balanced: optymalny kompromis szybkości i precyzji. Lightweight: najszybszy.",
+            help="Balanced: optymalny kompromis szybkosci i precyzji. Lightweight: najszybszy.",
         )
 
         device_choice = st.selectbox(
-            "Urządzenie obliczeniowe:",
+            "Urzadzenie obliczeniowe:",
             options=["cpu", "cuda"],
             index=0,
         )
 
         kpt_threshold = st.slider(
-            "Próg pewności stawu (confidence):",
+            "Prog pewnosci stawu (confidence):",
             min_value=0.20,
             max_value=0.70,
             value=0.35,
@@ -91,31 +90,31 @@ def main() -> None:
         )
 
         filter_cutoff = st.slider(
-            "Filtr Butterwortha (odcięcie Hz):",
+            "Filtr Butterwortha (odciecie Hz):",
             min_value=3.0,
             max_value=10.0,
             value=5.0,
             step=0.5,
-            help="Częstotliwość odcięcia szumu drżenia detektora (5 Hz jest optymalne dla kadencji 60-120 RPM).",
+            help="Czestotliwosc odciecia szumu drzenia detektora (5 Hz jest optymalne dla kadencji 60-120 RPM).",
         )
 
     # -------------------------------------------------------------
-    # GŁÓWNY PANEL: KROK 1 - WGRANIE WIDEO
+    # GLOWNY PANEL: KROK 1 - WGRANIE WIDEO
     # -------------------------------------------------------------
     uploaded_file = st.file_uploader(
-        "📁 Wgraj nagranie wideo (MP4 / MOV / AVI z boku roweru):",
+        "Wgraj nagranie wideo (MP4 / MOV / AVI z boku roweru):",
         type=["mp4", "mov", "avi"],
     )
 
     if not uploaded_file:
-        st.info("👆 Wgraj film z nagraniem jazdy na trenażerze, aby rozpocząć analizę.")
+        st.info("Wgraj film z nagraniem jazdy na trenazerze, aby rozpoczac analize.")
         st.markdown(
             """
-            > **Wskazówki do nagrania:**
-            > - Kamera ustawiona dokładnie z boku, prostopadle do osi roweru, na wysokości suportu.
-            > - Stabilny statyw (brak drgań kamery).
-            > - Obcisły strój kolarski (ułatwia precyzyjne śledzenie kolan, bioder i kostek).
-            > - Nagranie min. 10–20 sekund ciągłego pedałowania w stałym tempie.
+            > **Wskazowki do nagrania:**
+            > - Kamera ustawiona dokladnie z boku, prostopadle do osi roweru, na wysokosci suportu.
+            > - Stabilny statyw (brak drgan kamery).
+            > - Obcisly stroj kolarski (ulatwia precyzyjne sledzenie kolan, bioder i kostek).
+            > - Nagranie min. 10-20 sekund ciaglego pedalowania w stalym tempie.
             """
         )
         return
@@ -128,7 +127,7 @@ def main() -> None:
     cap = cv2.VideoCapture(str(video_input_path))
     ret, first_frame = cap.read()
     if not ret or first_frame is None:
-        st.error("Nie udało się odczytać klatek z przesłanego pliku wideo.")
+        st.error("Nie udalo sie odczytac klatek z przeslanego pliku wideo.")
         return
 
     h, w, _ = first_frame.shape
@@ -138,11 +137,11 @@ def main() -> None:
     # -------------------------------------------------------------
     # KROK 2: KALIBRACJA OSI KORBY (SUPORTU)
     # -------------------------------------------------------------
-    st.subheader("🎯 Krok 2: Wskaż środek osi korby (suport / BB)")
+    st.subheader("Krok 2: Wskaz srodek osi korby (suport / BB)")
     col_prev, col_coords = st.columns([2, 1])
 
     with col_coords:
-        st.markdown("Dostosuj współrzędne osi korby na pierwszej klatce:")
+        st.markdown("Dostosuj wspolrzedne osi korby na pierwszej klatce:")
         default_x = int(w * 0.45)
         default_y = int(h * 0.65)
 
@@ -160,19 +159,19 @@ def main() -> None:
         cv2.line(preview_img, (crank_x, crank_y - 30), (crank_x, crank_y + 30), (0, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(preview_img, "OS KORBY (BB)", (crank_x + 15, crank_y - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
-        # Konwersja BGR -> RGB do wyświetlenia w Streamlit
+        # Konwersja BGR -> RGB do wyswietlenia w Streamlit
         preview_rgb = cv2.cvtColor(preview_img, cv2.COLOR_BGR2RGB)
-        st.image(preview_rgb, caption="Podgląd pierwszej klatki z celownikiem suportu", use_container_width=True)
+        st.image(preview_rgb, caption="Podglad pierwszej klatki z celownikiem suportu", use_container_width=True)
 
     # -------------------------------------------------------------
     # KROK 3: URUCHOMIENIE ANALIZY
     # -------------------------------------------------------------
     st.markdown("---")
-    if st.button("🚀 Uruchom pełną analizę Bike Fittingu", type="primary"):
+    if st.button("Uruchom pelna analize Bike Fittingu", type="primary"):
         with st.spinner("Inicjalizacja modelu RTMPose i przetwarzanie wideo..."):
-            progress_bar = st.progress(0, text="Rozpoczynanie detekcji stawów...")
+            progress_bar = st.progress(0, text="Rozpoczynanie detekcji stawow...")
 
-            # Inicjalizacja komponentów
+            # Inicjalizacja komponentow
             estimator = RTMPoseEstimator(mode=model_mode, device=device_choice)
             visualizer = VideoVisualizer(kpt_score_threshold=kpt_threshold)
             processor = VideoProcessor(pose_estimator=estimator, visualizer=visualizer)
@@ -194,9 +193,9 @@ def main() -> None:
                 progress_callback=on_progress,
             )
 
-            progress_bar.progress(100, text="Filtracja trajektorii i obliczanie kątów...")
+            progress_bar.progress(100, text="Filtracja trajektorii i obliczanie katow...")
 
-            # Kinematyka i kąty
+            # Kinematyka i katy
             kinematics = extract_kinematics(
                 results=results,
                 fps=metadata.fps,
@@ -209,7 +208,7 @@ def main() -> None:
             detector = CycleDetector()
             cycle_stats = detector.segment(kinematics, fps=metadata.fps)
 
-            # Silnik reguł
+            # Silnik regul
             engine = FittingRuleEngine(config=FittingConfig())
             report = engine.evaluate(cycle_stats=cycle_stats, known_crank_length_mm=crank_length)
 
@@ -231,10 +230,10 @@ def main() -> None:
             st.session_state["html_content"] = html_content
             st.session_state["results"] = results
 
-        st.success("✅ Analiza zakończona sukcesem!")
+        st.success("Analiza zakonczona sukcesem.")
 
     # -------------------------------------------------------------
-    # PREZENTACJA WYNIKÓW
+    # PREZENTACJA WYNIKOW
     # -------------------------------------------------------------
     if "report" in st.session_state:
         report: FittingReport = st.session_state["report"]
@@ -245,43 +244,44 @@ def main() -> None:
         html_content = st.session_state["html_content"]
         results = st.session_state["results"]
 
-        st.markdown("## 📊 Wyniki i Raport Fittingowy")
+        st.markdown("## Wyniki i Raport Fittingowy")
 
         # Metryki w kafelkach
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Analizowana strona", cycle_stats.side.upper())
-        col2.metric("Kadencja (mediana)", f"{cycle_stats.cadence_rpm_median:.0f} RPM", f"±{cycle_stats.cadence_rpm_std:.1f}")
-        col3.metric("Zgięcie kolana w DMP", f"{cycle_stats.knee_flexion_bdc_median:.1f}°", "cel: 25°-35°")
-        col4.metric("Kąt biodra w GMP", f"{cycle_stats.hip_angle_tdc_median:.1f}°", "cel: ≥ 45°")
+        col2.metric("Kadencja (mediana)", f"{cycle_stats.cadence_rpm_median:.0f} RPM", f"+/-{cycle_stats.cadence_rpm_std:.1f}")
+        col3.metric("Zgiecie kolana w DMP", f"{cycle_stats.knee_flexion_bdc_median:.1f} deg", "cel: 25-35 deg")
+        col4.metric("Kat biodra w GMP", f"{cycle_stats.hip_angle_tdc_median:.1f} deg", "cel: >= 45 deg")
 
         tab_recs, tab_video, tab_charts, tab_data = st.tabs([
-            "💡 Porady i Rekomendacje",
-            "🎬 Wideo ze szkieletem",
-            "📈 Wykresy kinematyki",
-            "💾 Pobieranie danych i raportów",
+            "Porady i Rekomendacje",
+            "Wideo ze szkieletem",
+            "Wykresy kinematyki",
+            "Pobieranie danych i raportow",
         ])
 
         with tab_recs:
             st.subheader("Rekomendowane zmiany w ustawieniu roweru:")
             for i, rec in enumerate(report.recommendations, 1):
-                is_saddle = rec.category in (RecommendationCategory.SADDLE_HEIGHT, RecommendationCategory.SADDLE_FORE_AFT)
-                icon = "🔧" if is_saddle else "⚙️"
-
-                with st.expander(f"{icon} #{i} {rec.category.value}: {rec.action_summary}", expanded=True):
-                    st.markdown(f"**Zmierzona wartość:** `{rec.measured_value}{rec.unit}` (zakres docelowy: `{rec.target_range[0]}`–`{rec.target_range[1]}{rec.unit}`)")
-                    st.markdown(f"**Poziom pewności:** `{rec.confidence.value}`")
+                with st.expander(f"#{i} [{rec.category.value}] {rec.action_summary}", expanded=True):
+                    st.markdown(f"**Zmierzona wartosc:** `{rec.measured_value}{rec.unit}` (zakres docelowy: `{rec.target_range[0]}` - `{rec.target_range[1]}{rec.unit}`)")
+                    st.markdown(f"**Poziom pewnosci:** `{rec.confidence.value}`")
                     st.info(f"**Uzasadnienie:** {rec.rationale}")
-                    st.caption(f"**Wskazówka fittera:** {rec.alternatives}")
+                    st.caption(f"**Wskazowka fittera:** {rec.alternatives}")
 
-            st.warning(f"**Zastrzeżenie:** {report.medical_disclaimer}")
+            st.warning(f"**Zastrzezenie:** {report.medical_disclaimer}")
 
         with tab_video:
-            st.subheader("Nagranie wideo z nałożoną estymacją stawów i suportem:")
+            st.subheader("Nagranie wideo z nalozona estymacja stawow i suportem:")
             if out_video_path.exists():
-                st.video(str(out_video_path))
+                with open(out_video_path, "rb") as vf:
+                    video_bytes = vf.read()
+                st.video(video_bytes, format="video/mp4")
+            else:
+                st.error("Plik wideo nie zostal znaleziony.")
 
         with tab_charts:
-            st.subheader("Przebiegi kątów stawów w czasie (z zaznaczonymi DMP i GMP):")
+            st.subheader("Przebiegi katow stawow w czasie (z zaznaczonymi DMP i GMP):")
             if chart_path.exists():
                 st.image(str(chart_path), use_container_width=True)
 
@@ -291,7 +291,7 @@ def main() -> None:
 
             # 1. HTML
             down_col1.download_button(
-                "📄 Raport HTML (Pełny)",
+                "Raport HTML (Pelny)",
                 data=html_content,
                 file_name="bikefit_raport.html",
                 mime="text/html",
@@ -300,17 +300,17 @@ def main() -> None:
             # 2. Markdown
             md_text = format_markdown_summary(report)
             down_col2.download_button(
-                "📝 Raport Markdown",
+                "Raport Markdown",
                 data=md_text,
                 file_name="bikefit_raport.md",
                 mime="text/markdown",
             )
 
-            # 3. Kąty CSV
+            # 3. Katy CSV
             kinematics: KinematicsResult = st.session_state["kinematics"]
             df_angles = kinematics.to_dataframe()
             down_col3.download_button(
-                "📊 Kąty (CSV)",
+                "Katy (CSV)",
                 data=df_angles.to_csv(index=False),
                 file_name="bikefit_angles.csv",
                 mime="text/csv",
@@ -330,7 +330,7 @@ def main() -> None:
                 for kp in r.keypoints.values()
             ])
             down_col4.download_button(
-                "📍 Punkty kluczowe (CSV)",
+                "Punkty kluczowe (CSV)",
                 data=df_kpts.to_csv(index=False),
                 file_name="bikefit_keypoints.csv",
                 mime="text/csv",

@@ -23,6 +23,52 @@ class VideoMetadata:
     duration_s: float
 
 
+class WebCompatibleVideoWriter:
+    """Writes web-compatible H.264 MP4 videos (yuv420p) for smooth browser playback."""
+
+    def __init__(self, output_path: Path | str, fps: float, width: int, height: int):
+        self.output_path = Path(output_path)
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        self.fps = fps
+        self.width = width
+        self.height = height
+        self._imageio_writer = None
+        self._cv2_writer = None
+
+        try:
+            import imageio
+            self._imageio_writer = imageio.get_writer(
+                str(self.output_path),
+                fps=fps,
+                codec="libx264",
+                pixelformat="yuv420p",
+                format="FFMPEG",
+            )
+        except Exception:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            self._cv2_writer = cv2.VideoWriter(
+                str(self.output_path),
+                fourcc,
+                fps,
+                (width, height),
+            )
+
+    def write_frame_bgr(self, frame_bgr: np.ndarray) -> None:
+        if self._imageio_writer is not None:
+            frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+            self._imageio_writer.append_data(frame_rgb)
+        elif self._cv2_writer is not None:
+            self._cv2_writer.write(frame_bgr)
+
+    def release(self) -> None:
+        if self._imageio_writer is not None:
+            self._imageio_writer.close()
+            self._imageio_writer = None
+        if self._cv2_writer is not None:
+            self._cv2_writer.release()
+            self._cv2_writer = None
+
+
 class VideoProcessor:
     """Processes video frames through pose estimation and generates tracking records."""
 
@@ -63,7 +109,7 @@ class VideoProcessor:
         progress_callback: Optional[Callable[[int, int], None]] = None,
     ) -> Tuple[List[FramePoseResult], VideoMetadata]:
         """
-        Run the complete Stage 1 video processing pipeline.
+        Run the complete video processing pipeline.
 
         Args:
             video_path: Path to input MP4/video file.
@@ -109,16 +155,13 @@ class VideoProcessor:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
             # Setup video writer if output path requested
-            writer: Optional[cv2.VideoWriter] = None
+            writer: Optional[WebCompatibleVideoWriter] = None
             if output_video_path:
-                out_path = Path(output_video_path)
-                out_path.parent.mkdir(parents=True, exist_ok=True)
-                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                writer = cv2.VideoWriter(
-                    str(out_path),
-                    fourcc,
-                    metadata.fps,
-                    (metadata.width, metadata.height),
+                writer = WebCompatibleVideoWriter(
+                    output_path=output_video_path,
+                    fps=metadata.fps,
+                    width=metadata.width,
+                    height=metadata.height,
                 )
 
             results: List[FramePoseResult] = []
@@ -172,7 +215,7 @@ class VideoProcessor:
                         annotated = self.visualizer.draw_frame(
                             frame, frame_result, side_preference=side_preference
                         )
-                        writer.write(annotated)
+                        writer.write_frame_bgr(annotated)
 
                     if progress_callback:
                         progress_callback(frame_idx + 1, total_frames)

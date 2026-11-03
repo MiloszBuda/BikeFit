@@ -11,10 +11,10 @@ Kompleksowa aplikacja do komputerowej analizy pozycji kolarza (bike fitting) na 
    - Interaktywny podgląd pierwszej klatki z suwakami do kalibracji osi korby (suportu) w czasie rzeczywistym.
    - Pasek postępu analizy.
    - 4-zakładkowy pulpit wyników:
-     - 💡 **Porady i Rekomendacje**: karty z zaleceniami zmian w milimetrach, uzasadnieniem i poziomem pewności.
-     - 🎬 **Wideo ze szkieletem**: odtwarzacz wideo z naniesionym szkieletem 26 stawów.
-     - 📈 **Wykresy kinematyki**: wykresy z oznaczonymi punktami DMP (dolny martwy punkt) i GMP (górny martwy punkt).
-     - 💾 **Pobieranie**: natychmiastowe pobieranie raportu HTML, Markdown, JSON oraz danych CSV/Parquet.
+     - **Porady i Rekomendacje**: karty z zaleceniami zmian w milimetrach, uzasadnieniem i poziomem pewności.
+     - **Wideo ze szkieletem**: odtwarzacz wideo z naniesionym szkieletem 26 stawów (kodowanie H.264 z yuv420p zapewniające pełną zgodność z przeglądarkami).
+     - **Wykresy kinematyki**: wykresy z oznaczonymi punktami DMP (dolny martwy punkt) i GMP (górny martwy punkt).
+     - **Pobieranie**: natychmiastowe pobieranie raportu HTML, Markdown, JSON oraz danych CSV/Parquet.
 2. **Estymacja pozy (RTMPose Halpe26)**:
    - Śledzenie 26 punktów kluczowych kolarza (stawy biodrowe, kolanowe, skokowe, pięty, palce stóp, barki, łokcie, nadgarstki, kark, głowa).
    - Lekki silnik inferencyjny ONNX Runtime (`rtmlib`) – bez ciężkich zależności PyTorch/MMCV.
@@ -77,7 +77,7 @@ python -m bikefit.cli video.mp4 --output-dir ./wyniki --crank 640,720 --crank-le
 | Plik | Opis |
 | :--- | :--- |
 | `*_report.html` | Samodzielny, interaktywny raport HTML z wbudowanymi wykresami |
-| `*_annotated.mp4` | Wideo ze szkieletem Halpe26 i celownikiem osi korby |
+| `*_annotated.mp4` | Wideo ze szkieletem Halpe26 i celownikiem osi korby (zgodne z przeglądarkami H.264) |
 | `*_kinematics.png` | 3-panelowy wykres kątów w czasie z oznaczonymi punktami DMP i GMP |
 | `*_report.md` | Raport fittingowy w formacie Markdown |
 | `*_report.json` | Ustrukturyzowane dane JSON dla aplikacji i baz danych |
@@ -91,4 +91,4 @@ python -m bikefit.cli video.mp4 --output-dir ./wyniki --crank 640,720 --crank-le
 ```bash
 pytest -v
 ```
-Wszystkie 43 testy wykonują się w ~4-5 sekund.
+Wszystkie 44 testy wykonują się w ~4-5 sekund.

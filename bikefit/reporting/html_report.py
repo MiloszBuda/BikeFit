@@ -27,17 +27,17 @@ def generate_html_report(
 
     def status_badge(val: float, min_v: float, max_v: float) -> str:
         if min_v <= val <= max_v:
-            return '<span class="badge badge-success">✅ W normie</span>'
+            return '<span class="badge badge-success">W normie</span>'
         diff = min(abs(val - min_v), abs(val - max_v))
         if diff <= 4.0:
-            return '<span class="badge badge-warning">⚠️ Wymaga korekty</span>'
-        return '<span class="badge badge-danger">❌ Poza zakresem</span>'
+            return '<span class="badge badge-warning">Wymaga korekty</span>'
+        return '<span class="badge badge-danger">Poza zakresem</span>'
 
     table_rows = [
         ("Zgięcie kolana w DMP", f"{stats.knee_flexion_bdc_median:.1f}°", "25° – 35°", status_badge(stats.knee_flexion_bdc_median, 25.0, 35.0)),
         ("Kąt wewnętrzny kolana w DMP", f"{stats.knee_angle_bdc_median:.1f}°", "145° – 155°", status_badge(stats.knee_angle_bdc_median, 145.0, 155.0)),
-        ("Kąt biodra w GMP", f"{stats.hip_angle_tdc_median:.1f}°", "≥ 45°", '<span class="badge badge-success">✅ W normie</span>' if stats.hip_angle_tdc_median >= 45 else '<span class="badge badge-danger">❌ Za mocno zamknięte</span>'),
-        ("Pochylenie tułowia", f"{stats.torso_angle_median:.1f}°", "40° – 50°", '<span class="badge badge-info">ℹ️ Rekreacja/Endurance</span>' if 40 <= stats.torso_angle_median <= 50 else '<span class="badge badge-warning">ℹ️ Pozycja niestandardowa</span>'),
+        ("Kąt biodra w GMP", f"{stats.hip_angle_tdc_median:.1f}°", "≥ 45°", '<span class="badge badge-success">W normie</span>' if stats.hip_angle_tdc_median >= 45 else '<span class="badge badge-danger">Za mocno zamknięte</span>'),
+        ("Pochylenie tułowia", f"{stats.torso_angle_median:.1f}°", "40° – 50°", '<span class="badge badge-info">Rekreacja / Endurance</span>' if 40 <= stats.torso_angle_median <= 50 else '<span class="badge badge-warning">Pozycja niestandardowa</span>'),
         ("Kąt ugięcia łokcia", f"{stats.elbow_angle_median:.1f}°", "150° – 165°", status_badge(stats.elbow_angle_median, 150.0, 165.0)),
         ("Nachylenie stopy w DMP", f"{stats.foot_angle_bdc_median:.1f}°", "-5° do +15°", status_badge(stats.foot_angle_bdc_median, -5.0, 15.0)),
     ]
@@ -63,7 +63,7 @@ def generate_html_report(
                 {conf_badge}
             </div>
             <div class="rec-action">
-                👉 <strong>{rec.action_summary}</strong>
+                <strong>{rec.action_summary}</strong>
             </div>
             <div class="rec-meta">
                 <span>Wartość zmierzona: <strong>{rec.measured_value}{rec.unit}</strong> (zakres docelowy: {rec.target_range[0]}–{rec.target_range[1]}{rec.unit})</span>
@@ -80,7 +80,7 @@ def generate_html_report(
     if chart_base64:
         chart_html = f"""
         <div class="section-card">
-            <h2>📈 Wykresy kinematyki i cykli pedałowania</h2>
+            <h2>Wykresy kinematyki i cykli pedałowania</h2>
             <img src="{chart_base64}" alt="Wykres kinematyki bike fittingu" class="chart-img"/>
         </div>
         """
@@ -240,7 +240,7 @@ def generate_html_report(
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚴 BikeFit AI - Raport analizy pozycji</h1>
+            <h1>BikeFit AI - Raport analizy pozycji</h1>
             <p>Automatyczna analiza biomechaniki jazdy na trenażerze (RTMPose Halpe26 + Segmentacja cykli)</p>
             <div class="stat-grid">
                 <div class="stat-box">
@@ -263,7 +263,7 @@ def generate_html_report(
         </div>
 
         <div class="section-card">
-            <h2>📊 Tabela zmierzonych parametrów stawowych</h2>
+            <h2>Tabela zmierzonych parametrów stawowych</h2>
             <table>
                 <thead>
                     <tr>
@@ -282,12 +282,12 @@ def generate_html_report(
         {chart_html}
 
         <div class="section-card">
-            <h2>💡 Rekomendacje zmian ustawienia roweru</h2>
+            <h2>Rekomendacje zmian ustawienia roweru</h2>
             {"".join(cards_html)}
         </div>
 
         <div class="disclaimer">
-            <strong>⚠️ Zastrzeżenie medyczne:</strong> {report.medical_disclaimer}
+            <strong>Zastrzeżenie medyczne:</strong> {report.medical_disclaimer}
         </div>
     </div>
 </body>
